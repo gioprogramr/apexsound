@@ -2,7 +2,7 @@
 let googleUser = null
 let supabase = null
 
-// Configuración de Supabase (se inicializa después)
+// Configuración de Supabase
 const supabaseUrl = "https://qrugulhyzttsjcmfcdve.supabase.co"
 const supabaseKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFydWd1bGh5enR0c2pjbWZjZHZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2NTEyOTMsImV4cCI6MjA2NzIyNzI5M30.lIcm3kji8MZ2ho8Xwutf5xw4eubG6zZCQjQbek6IDDw"
@@ -10,7 +10,6 @@ const supabaseKey =
 // Inicializar Supabase
 async function initSupabase() {
   try {
-    // Cargar Supabase desde CDN
     const script = document.createElement("script")
     script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
     document.head.appendChild(script)
@@ -34,7 +33,6 @@ function initializeGoogleSignIn() {
     return
   }
 
-  // Mostrar estado de carga
   buttonContainer.innerHTML = `
     <div style="color: #00ffff; padding: 1rem; text-align: center;">
       <div class="spinner" style="margin: 0 auto 0.5rem; width: 20px; height: 20px;"></div>
@@ -42,7 +40,6 @@ function initializeGoogleSignIn() {
     </div>
   `
 
-  // Cargar Google API
   if (!window.google) {
     const script = document.createElement("script")
     script.src = "https://accounts.google.com/gsi/client"
@@ -51,7 +48,7 @@ function initializeGoogleSignIn() {
 
     script.onload = () => {
       console.log("✅ Google API cargada")
-      setTimeout(setupGoogleButton, 500) // Pequeño delay para asegurar que se cargue
+      setTimeout(setupGoogleButton, 500)
     }
 
     script.onerror = () => {
@@ -66,20 +63,16 @@ function initializeGoogleSignIn() {
 }
 
 function setupGoogleButton() {
-  console.log("🎨 Configurando botón de Google...")
-
   const buttonContainer = document.getElementById("google-signin-button")
   if (!buttonContainer) return
 
   try {
-    // Verificar que Google API esté disponible
     if (!window.google || !window.google.accounts || !window.google.accounts.id) {
       console.error("❌ Google API no está completamente cargada")
       showErrorButton()
       return
     }
 
-    // Inicializar Google Sign-In
     window.google.accounts.id.initialize({
       client_id: "567962167229-m10cma3n806pkq3r6774ajttpp4hg871.apps.googleusercontent.com",
       callback: handleCredentialResponse,
@@ -87,10 +80,8 @@ function setupGoogleButton() {
       cancel_on_tap_outside: false,
     })
 
-    // Limpiar contenedor
     buttonContainer.innerHTML = ""
 
-    // Renderizar botón
     window.google.accounts.id.renderButton(buttonContainer, {
       theme: "outline",
       size: "large",
@@ -102,7 +93,6 @@ function setupGoogleButton() {
 
     console.log("✅ Botón de Google renderizado exitosamente")
 
-    // Verificar que el botón se renderizó
     setTimeout(() => {
       const hasButton = buttonContainer.children.length > 0
       if (!hasButton) {
@@ -266,10 +256,8 @@ async function handleCredentialResponse(response) {
         }
       }
 
-      // Guardar en localStorage
       localStorage.setItem("apexsound_user", JSON.stringify(googleUser))
 
-      // Éxito
       setTimeout(() => {
         hideLoginScreen()
         displayUserInfo()
@@ -284,7 +272,6 @@ async function handleCredentialResponse(response) {
   }
 }
 
-// Parsear JWT token
 function parseJwt(token) {
   try {
     const base64Url = token.split(".")[1]
@@ -302,19 +289,32 @@ function parseJwt(token) {
   }
 }
 
-// Funciones de Supabase (simplificadas)
+// FUNCIONES DE SUPABASE COMPLETAS
 async function loadUserProfile() {
   if (!supabase) return
 
   try {
+    console.log("📖 Cargando perfil desde Supabase...")
+
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return
 
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+    if (!user) {
+      console.log("❌ No hay usuario autenticado en Supabase")
+      return
+    }
+
+    const { data: profile, error } = await supabase.from("profiles").select("*").eq("id", user.id).single()
+
+    if (error && error.code !== "PGRST116") {
+      console.error("❌ Error cargando perfil:", error)
+      return
+    }
 
     if (profile) {
+      console.log("✅ Perfil cargado desde Supabase:", profile)
+
       googleUser = {
         ...googleUser,
         supabaseId: user.id,
@@ -324,9 +324,87 @@ async function loadUserProfile() {
         avatarUrl: profile.avatar_url || googleUser.picture,
         picture: profile.avatar_url || googleUser.picture,
       }
+    } else {
+      console.log("ℹ️ No se encontró perfil, se creará uno nuevo")
+      googleUser.supabaseId = user.id
     }
   } catch (error) {
-    console.warn("⚠️ Error cargando perfil:", error)
+    console.error("❌ Error en loadUserProfile:", error)
+  }
+}
+
+async function saveUserProfile(profileData) {
+  try {
+    console.log("💾 Guardando perfil en Supabase...")
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      throw new Error("No hay usuario autenticado")
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert({
+        id: user.id,
+        username: profileData.username,
+        bio: profileData.bio,
+        favorite_instrument: profileData.favoriteInstrument,
+        avatar_url: profileData.avatarUrl,
+      })
+      .select()
+
+    if (error) {
+      console.error("❌ Error guardando perfil:", error)
+      throw error
+    }
+
+    console.log("✅ Perfil guardado exitosamente:", data)
+    return data
+  } catch (error) {
+    console.error("❌ Error en saveUserProfile:", error)
+    throw error
+  }
+}
+
+async function uploadAvatar(file) {
+  try {
+    console.log("📤 Subiendo avatar a Supabase Storage...")
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      throw new Error("No hay usuario autenticado")
+    }
+
+    const fileExt = file.name.split(".").pop()
+    const fileName = `${user.id}/avatar.${fileExt}`
+
+    await supabase.storage.from("avatars").remove([fileName])
+
+    const { data, error } = await supabase.storage.from("avatars").upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: true,
+    })
+
+    if (error) {
+      console.error("❌ Error subiendo avatar:", error)
+      throw error
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("avatars").getPublicUrl(fileName)
+
+    console.log("✅ Avatar subido exitosamente:", publicUrl)
+    return publicUrl
+  } catch (error) {
+    console.error("❌ Error en uploadAvatar:", error)
+    throw error
   }
 }
 
@@ -354,7 +432,6 @@ function displayUserInfo() {
   }
 }
 
-// Cerrar sesión
 async function handleLogout() {
   console.log("👋 Cerrando sesión...")
 
@@ -376,7 +453,6 @@ async function handleLogout() {
   window.location.reload()
 }
 
-// Ocultar pantalla de login
 function hideLoginScreen() {
   const loginOverlay = document.getElementById("login-overlay")
   const mainContent = document.getElementById("main-content")
@@ -396,10 +472,8 @@ function hideLoginScreen() {
   }
 }
 
-// Verificar sesión existente
 async function checkExistingSession() {
   try {
-    // Verificar localStorage
     const storedUser = localStorage.getItem("apexsound_user")
     if (storedUser) {
       try {
@@ -413,7 +487,6 @@ async function checkExistingSession() {
       }
     }
 
-    // Verificar Supabase si está disponible
     if (supabase) {
       const {
         data: { session },
@@ -448,7 +521,6 @@ async function checkExistingSession() {
   }
 }
 
-// Inicializar aplicación principal
 function initializeMainApp() {
   console.log("🎵 Inicializando aplicación principal...")
 
@@ -458,7 +530,6 @@ function initializeMainApp() {
   const catalogBtn = document.getElementById("catalog-btn")
   const header = document.getElementById("header")
 
-  // Navegación móvil
   if (navToggle && navMenu) {
     navToggle.addEventListener("click", () => {
       navMenu.classList.toggle("active")
@@ -466,7 +537,6 @@ function initializeMainApp() {
     })
   }
 
-  // Cerrar menú móvil al hacer clic en un enlace
   navLinks.forEach((link) => {
     link.addEventListener("click", () => {
       if (navMenu) navMenu.classList.remove("active")
@@ -474,7 +544,6 @@ function initializeMainApp() {
     })
   })
 
-  // Scroll suave para enlaces de navegación
   navLinks.forEach((link) => {
     link.addEventListener("click", (e) => {
       e.preventDefault()
@@ -493,7 +562,6 @@ function initializeMainApp() {
     })
   })
 
-  // Botón de catálogo
   if (catalogBtn) {
     catalogBtn.addEventListener("click", () => {
       catalogBtn.style.transform = "scale(0.95)"
@@ -517,8 +585,10 @@ function initializeMainApp() {
   console.log("✅ Aplicación principal inicializada")
 }
 
-// Funciones del modal de perfil
+// FUNCIONES DEL MODAL DE PERFIL - COMPLETAS Y FUNCIONALES
 function openProfileModal() {
+  console.log("🔧 Abriendo modal de perfil...")
+
   const modal = document.getElementById("profile-modal-overlay")
   if (!modal) return
 
@@ -531,6 +601,8 @@ function openProfileModal() {
 }
 
 function closeProfileModal() {
+  console.log("❌ Cerrando modal de perfil...")
+
   const modal = document.getElementById("profile-modal-overlay")
   if (!modal) return
 
@@ -544,15 +616,18 @@ function closeProfileModal() {
 function loadProfileData() {
   if (!googleUser) return
 
+  console.log("📝 Cargando datos del perfil...")
+
   const profilePreview = document.getElementById("profile-preview")
+  if (profilePreview) {
+    profilePreview.src = googleUser.avatarUrl || googleUser.picture || "/placeholder.svg?height=100&width=100"
+  }
+
   const displayNameInput = document.getElementById("display-name")
   const emailInput = document.getElementById("user-email")
   const bioInput = document.getElementById("user-bio")
   const instrumentSelect = document.getElementById("favorite-instrument")
 
-  if (profilePreview) {
-    profilePreview.src = googleUser.avatarUrl || googleUser.picture || "/placeholder.svg?height=100&width=100"
-  }
   if (displayNameInput) displayNameInput.value = googleUser.username || googleUser.name || ""
   if (emailInput) emailInput.value = googleUser.email || ""
   if (bioInput) bioInput.value = googleUser.bio || ""
@@ -560,63 +635,196 @@ function loadProfileData() {
 }
 
 function removeProfilePhoto() {
+  console.log("🗑️ Removiendo foto de perfil...")
+
   const profilePreview = document.getElementById("profile-preview")
   if (profilePreview) {
     profilePreview.src =
       "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjUwIiBmaWxsPSIjMDBmZmZmIi8+CjxzdmcgeD0iMjAiIHk9IjIwIiB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxjaXJjbGUgY3g9IjEyIiBjeT0iNyIgcj0iNCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4KPC9zdmc+"
   }
-  if (googleUser) googleUser.photoRemoved = true
+
+  googleUser.photoRemoved = true
 }
 
-// Inicialización cuando el DOM esté listo
+// SUBIDA DE FOTOS - FUNCIONAL
+async function handlePhotoUpload(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  console.log("📸 Subiendo nueva foto de perfil...")
+
+  if (!file.type.startsWith("image/")) {
+    alert("Por favor selecciona un archivo de imagen válido.")
+    return
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert("La imagen es muy grande. Por favor selecciona una imagen menor a 5MB.")
+    return
+  }
+
+  try {
+    const profilePreview = document.getElementById("profile-preview")
+    const uploadBtn = document.querySelector(".upload-btn")
+
+    if (uploadBtn) {
+      uploadBtn.textContent = "Subiendo..."
+      uploadBtn.disabled = true
+    }
+
+    let avatarUrl
+    if (supabase) {
+      avatarUrl = await uploadAvatar(file)
+    } else {
+      // Fallback: convertir a base64 si no hay Supabase
+      avatarUrl = await fileToBase64(file)
+    }
+
+    if (profilePreview) {
+      profilePreview.src = avatarUrl
+    }
+
+    googleUser.newAvatarUrl = avatarUrl
+    googleUser.photoRemoved = false
+
+    console.log("✅ Nueva foto cargada exitosamente")
+
+    if (uploadBtn) {
+      uploadBtn.textContent = "✅ Subida"
+      setTimeout(() => {
+        uploadBtn.textContent = "Cambiar Foto"
+        uploadBtn.disabled = false
+      }, 2000)
+    }
+  } catch (error) {
+    console.error("❌ Error subiendo foto:", error)
+    alert("Error al subir la imagen. Por favor intenta de nuevo.")
+
+    const uploadBtn = document.querySelector(".upload-btn")
+    if (uploadBtn) {
+      uploadBtn.textContent = "Cambiar Foto"
+      uploadBtn.disabled = false
+    }
+  }
+}
+
+// Convertir archivo a base64 (fallback)
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = (error) => reject(error)
+  })
+}
+
+// GUARDAR PERFIL - FUNCIONAL COMPLETO
+async function handleProfileSave(event) {
+  event.preventDefault()
+
+  console.log("💾 Guardando cambios del perfil...")
+
+  const formData = new FormData(event.target)
+  const saveBtn = event.target.querySelector(".save-btn")
+
+  saveBtn.disabled = true
+  saveBtn.textContent = "Guardando..."
+
+  try {
+    const profileData = {
+      username: formData.get("displayName") || googleUser.name,
+      bio: formData.get("bio") || "",
+      favoriteInstrument: formData.get("favoriteInstrument") || "",
+      avatarUrl: googleUser.photoRemoved
+        ? "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iNTAiIHI9IjUwIiBmaWxsPSIjMDBmZmZmIi8+CjxzdmcgeD0iMjAiIHk9IjIwIiB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxjaXJjbGUgY3g9IjEyIiBjeT0iNyIgcj0iNCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4KPC9zdmc+"
+        : googleUser.newAvatarUrl || googleUser.avatarUrl || googleUser.picture,
+    }
+
+    // Guardar en Supabase si está disponible
+    if (supabase) {
+      try {
+        await saveUserProfile(profileData)
+      } catch (supabaseError) {
+        console.warn("⚠️ Error guardando en Supabase, guardando localmente:", supabaseError)
+      }
+    }
+
+    // Actualizar objeto local
+    googleUser.username = profileData.username
+    googleUser.bio = profileData.bio
+    googleUser.favoriteInstrument = profileData.favoriteInstrument
+    googleUser.avatarUrl = profileData.avatarUrl
+    googleUser.picture = profileData.avatarUrl
+
+    // Guardar en localStorage
+    localStorage.setItem("apexsound_user", JSON.stringify(googleUser))
+
+    // Actualizar UI
+    updateUserInfoDisplay()
+
+    setTimeout(() => {
+      saveBtn.disabled = false
+      saveBtn.textContent = "✅ Guardado"
+
+      setTimeout(() => {
+        saveBtn.textContent = "Guardar Cambios"
+        closeProfileModal()
+      }, 1000)
+    }, 500)
+
+    console.log("✅ Perfil actualizado exitosamente")
+  } catch (error) {
+    console.error("❌ Error guardando perfil:", error)
+    alert("Error al guardar los cambios. Por favor intenta de nuevo.")
+
+    saveBtn.disabled = false
+    saveBtn.textContent = "Guardar Cambios"
+  }
+}
+
+function updateUserInfoDisplay() {
+  const userAvatar = document.querySelector(".user-avatar")
+  const userName = document.querySelector(".user-name")
+
+  if (userAvatar) {
+    userAvatar.src = googleUser.picture
+  }
+
+  if (userName) {
+    const tempBadge = googleUser.temporary
+      ? '<span style="background: #ff6b6b; color: white; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 10px; margin-left: 0.5rem;">TEMP</span>'
+      : ""
+    userName.innerHTML = `Hola, ${googleUser.username || googleUser.given_name || googleUser.name}${tempBadge}`
+  }
+}
+
+// INICIALIZACIÓN
 document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 Apexsound - Iniciando aplicación...")
 
-  // Inicializar Supabase
   initSupabase()
 
-  // Verificar sesión existente
   const hasSession = await checkExistingSession()
 
   if (!hasSession) {
-    // Inicializar Google Sign-In después de un pequeño delay
     setTimeout(() => {
       initializeGoogleSignIn()
     }, 1000)
   }
 
-  // Configurar listeners del formulario de perfil
+  // CONFIGURAR LISTENERS DEL PERFIL
+  const photoUpload = document.getElementById("photo-upload")
+  if (photoUpload) {
+    photoUpload.addEventListener("change", handlePhotoUpload)
+  }
+
   const profileForm = document.getElementById("profile-form")
   if (profileForm) {
-    profileForm.addEventListener("submit", (e) => {
-      e.preventDefault()
-      // Funcionalidad básica de guardado sin Supabase
-      const formData = new FormData(e.target)
-
-      if (googleUser) {
-        googleUser.username = formData.get("displayName") || googleUser.name
-        googleUser.bio = formData.get("bio") || ""
-        googleUser.favoriteInstrument = formData.get("favoriteInstrument") || ""
-
-        localStorage.setItem("apexsound_user", JSON.stringify(googleUser))
-
-        // Actualizar UI
-        const userName = document.querySelector(".user-name")
-        if (userName) {
-          const tempBadge = googleUser.temporary
-            ? '<span style="background: #ff6b6b; color: white; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 10px; margin-left: 0.5rem;">TEMP</span>'
-            : ""
-          userName.innerHTML = `Hola, ${googleUser.username || googleUser.given_name || googleUser.name}${tempBadge}`
-        }
-
-        alert("Perfil actualizado correctamente")
-        closeProfileModal()
-      }
-    })
+    profileForm.addEventListener("submit", handleProfileSave)
   }
 })
 
-// Cerrar modal con Escape o clic fuera
+// Event listeners para cerrar modal
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     const modal = document.getElementById("profile-modal-overlay")
