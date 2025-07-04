@@ -151,6 +151,26 @@ body {
   transform: translateY(-1px);
 }
 
+/* Edit Profile Button in Header */
+.edit-profile-btn {
+  background: transparent;
+  border: 1px solid #00ffff;
+  color: #00ffff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  margin-left: 0.5rem;
+}
+
+.edit-profile-btn:hover {
+  background: #00ffff;
+  color: #000000;
+  transform: translateY(-1px);
+}
+
 /* Main Content */
 .main {
   margin-top: 80px;
@@ -437,125 +457,6 @@ body {
   opacity: 1;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .nav {
-    padding: 1rem;
-  }
-
-  .nav-menu {
-    position: fixed;
-    left: -100%;
-    top: 80px;
-    flex-direction: column;
-    background-color: rgba(10, 10, 10, 0.95);
-    width: 100%;
-    text-align: center;
-    transition: 0.3s;
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(0, 255, 255, 0.1);
-    padding: 2rem 0;
-  }
-
-  .nav-menu.active {
-    left: 0;
-  }
-
-  .nav-toggle {
-    display: flex;
-  }
-
-  .nav-toggle.active .bar:nth-child(2) {
-    opacity: 0;
-  }
-
-  .nav-toggle.active .bar:nth-child(1) {
-    transform: translateY(8px) rotate(45deg);
-  }
-
-  .nav-toggle.active .bar:nth-child(3) {
-    transform: translateY(-8px) rotate(-45deg);
-  }
-
-  .hero-container {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-    text-align: center;
-  }
-
-  .hero-title {
-    font-size: 2rem;
-  }
-
-  .hero-description {
-    font-size: 1rem;
-  }
-
-  .music-notes {
-    width: 200px;
-    height: 200px;
-  }
-
-  .note {
-    font-size: 2rem;
-  }
-
-  .brand-name {
-    font-size: 1.2rem;
-  }
-
-  .logo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .user-info {
-    gap: 0.5rem;
-  }
-
-  .user-avatar {
-    width: 35px;
-    height: 35px;
-  }
-
-  .user-name {
-    font-size: 0.8rem;
-  }
-
-  .logout-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero-title {
-    font-size: 1.5rem;
-  }
-
-  .cta-button {
-    padding: 0.8rem 1.5rem;
-    font-size: 1rem;
-  }
-
-  .section {
-    padding: 2rem 1rem;
-  }
-
-  .section h2 {
-    font-size: 2rem;
-  }
-
-  .user-info {
-    flex-direction: column;
-    gap: 0.3rem;
-  }
-
-  .user-name {
-    display: none;
-  }
-}
-
 /* Profile Modal Styles */
 .profile-modal-overlay {
   position: fixed;
@@ -790,28 +691,96 @@ body {
   transform: none;
 }
 
-/* Edit Profile Button in Header */
-.edit-profile-btn {
-  background: transparent;
-  border: 1px solid #00ffff;
-  color: #00ffff;
-  padding: 0.4rem 0.8rem;
-  border-radius: 15px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  transition: all 0.3s ease;
-  font-family: inherit;
-  margin-left: 0.5rem;
-}
-
-.edit-profile-btn:hover {
-  background: #00ffff;
-  color: #000000;
-  transform: translateY(-1px);
-}
-
-/* Responsive Design for Profile Modal */
+/* Responsive Design */
 @media (max-width: 768px) {
+  .nav {
+    padding: 1rem;
+  }
+
+  .nav-menu {
+    position: fixed;
+    left: -100%;
+    top: 80px;
+    flex-direction: column;
+    background-color: rgba(10, 10, 10, 0.95);
+    width: 100%;
+    text-align: center;
+    transition: 0.3s;
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0, 255, 255, 0.1);
+    padding: 2rem 0;
+  }
+
+  .nav-menu.active {
+    left: 0;
+  }
+
+  .nav-toggle {
+    display: flex;
+  }
+
+  .nav-toggle.active .bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  .nav-toggle.active .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+
+  .nav-toggle.active .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+
+  .hero-container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    text-align: center;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-description {
+    font-size: 1rem;
+  }
+
+  .music-notes {
+    width: 200px;
+    height: 200px;
+  }
+
+  .note {
+    font-size: 2rem;
+  }
+
+  .brand-name {
+    font-size: 1.2rem;
+  }
+
+  .logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .user-info {
+    gap: 0.5rem;
+  }
+
+  .user-avatar {
+    width: 35px;
+    height: 35px;
+  }
+
+  .user-name {
+    font-size: 0.8rem;
+  }
+
+  .logout-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.7rem;
+  }
+
   .profile-modal {
     width: 95%;
     margin: 1rem;
@@ -840,6 +809,32 @@ body {
 }
 
 @media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .cta-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .section {
+    padding: 2rem 1rem;
+  }
+
+  .section h2 {
+    font-size: 2rem;
+  }
+
+  .user-info {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .user-name {
+    display: none;
+  }
+
   .profile-photo-preview {
     width: 80px;
     height: 80px;
